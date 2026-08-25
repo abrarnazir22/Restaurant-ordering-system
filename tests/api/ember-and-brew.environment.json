@@ -1,0 +1,24 @@
+{
+  "id": "eb-env-dev",
+  "name": "Ember & Brew — Local Dev",
+  "values": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "adminToken",
+      "value": "",
+      "type": "secret",
+      "enabled": true
+    },
+    {
+      "key": "customerToken",
+      "value": "",
+      "type": "secret",
+      "enabled": true
+    }
+  ]
+}

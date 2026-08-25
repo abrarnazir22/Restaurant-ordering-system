@@ -7,6 +7,7 @@ const jwt = require("jsonwebtoken");
 const { autoAssignOrder } = require("./delivery");
 const { isAdminRole, resolveBranchId } = require("../utils/branchScope");
 const { notifyCustomer } = require("../services/notificationService");
+const { isValidObjectId } = require("../utils/validation");
 
 // =====================================
 // CHEF AUTH
@@ -172,47 +173,36 @@ router.get("/orders", kitchenAuth, async (req, res) => {
 // =====================================
 
 router.put("/:id/accept", kitchenAuth, async (req,res)=>{
-
-
     try{
-
-
+        if (!isValidObjectId(req.params.id)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid order ID format"
+            });
+        }
         const orderFilter = { _id: req.params.id, branchId: req.user.branchId };
         const order = await Order.findOne(orderFilter);
 
-
-
         if(!order){
-
            return res.status(404).json({
     success: false,
     message: "Order not found"
 });
-
         }
 
-
 if (!["pending_kitchen", "received"].includes(order.status)) {
-
     return res.status(400).json({
         success: false,
         message: "Only admin-approved orders can be accepted."
     });
-
 }
 
 order.status = "preparing";
 
-
         order.statusLog.push({
-
             status:"preparing",
-
             time:new Date()
-
         });
-
-
 
         await order.save();
         await notifyCustomer(order, "preparing");
@@ -229,25 +219,14 @@ order.status = "preparing";
             order
         });
 
-
-
     }
     catch(error){
-
-
         res.status(500).json({
     success: false,
     message: error.message
 });
-
-
     }
-
-
 });
-
-
-
 
 // =====================================
 // MARK ORDER READY
@@ -255,37 +234,27 @@ order.status = "preparing";
 // =====================================
 
 router.put("/:id/prepared", kitchenAuth, async(req,res)=>{
-
-
     try{
-
-
+        if (!isValidObjectId(req.params.id)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid order ID format"
+            });
+        }
         const orderFilter = { _id: req.params.id, branchId: req.user.branchId };
         const order = await Order.findOne(orderFilter);
 
-
-
         if(!order){
-
-
             return res.status(404).json({
-
                 message:"Order not found"
-
             });
-
-
         }
 
-
-
         if (order.status !== "preparing") {
-
     return res.status(400).json({
         success: false,
         message: "Only preparing orders can be marked ready."
     });
-
 }
 
 order.status = "ready";

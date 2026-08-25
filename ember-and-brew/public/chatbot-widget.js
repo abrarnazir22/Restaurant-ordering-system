@@ -111,8 +111,8 @@
       <div class="eb-chat-body" id="eb-chat-body"></div>
       <div class="eb-chips" id="eb-chat-chips"></div>
       <div class="eb-chat-input-row">
-        <input type="text" id="eb-chat-input" placeholder="Type a message…" autocomplete="off" />
-        <button class="eb-chat-send" id="eb-chat-send">${ICON_SEND}</button>
+        <input type="text" id="eb-chat-input" placeholder="Type a message…" aria-label="Type a message" autocomplete="off" />
+        <button class="eb-chat-send" id="eb-chat-send" aria-label="Send message">${ICON_SEND}</button>
       </div>
     `;
 

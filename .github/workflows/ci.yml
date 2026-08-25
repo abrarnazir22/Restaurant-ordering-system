@@ -1,0 +1,52 @@
+name: Ember & Brew CI/CD Quality Pipeline
+
+on:
+  push:
+    branches: [ main, master, release/* ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  quality-gate:
+    name: Build, Lint & Automated Quality Verification
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js Environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: 'npm'
+
+      - name: Install NPM Dependencies
+        run: npm ci
+
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: 1. Database Quality & Schema Integrity Audit
+        run: node scripts/db-quality-check.js
+
+      - name: 2. Supertest API Integration Test Suite
+        run: node tests/api/api-runner.js
+
+      - name: 3. Synthetic Endpoint Health & Uptime Probe
+        run: node scripts/synthetic-monitor.js
+
+      - name: 4. Playwright E2E, Security & Accessibility Test Suite
+        run: npx playwright test
+
+      - name: 5. Performance Benchmark Smoke Check
+        run: node tests/performance/run-perf.js
+
+      - name: Upload Playwright Test Artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 14

@@ -7,6 +7,7 @@ const jwt = require("jsonwebtoken");
 const REGIONS = require("../data/regions");
 const { isAdminRole, resolveBranchId } = require("../utils/branchScope");
 const { notifyCustomer } = require("../services/notificationService");
+const { isValidObjectId } = require("../utils/validation");
 
 // A rider can't hold more than this many active ("out-for-delivery") orders
 // at once. Once they hit this cap they're skipped by auto-assignment until
@@ -589,6 +590,18 @@ router.put("/location", deliveryAuth, async (req, res) => {
             { $set: { riderLocation: { type: "Point", coordinates: [longitude, latitude], updatedAt: new Date() } } }
         );
         if (!update.matchedCount) return res.status(409).json({ success: false, message: "There is no active delivery to share." });
+
+        const io = req.app && req.app.locals && req.app.locals.io;
+        if (io) {
+            try {
+                io.emit('rider:location', {
+                    riderId: req.user.id,
+                    coordinates: [longitude, latitude],
+                    updatedAt: new Date()
+                });
+            } catch (e) { /* ignore emit errors */ }
+        }
+
         res.json({ success: true, updatedAt: new Date() });
     } catch (_) {
         res.status(500).json({ success: false, message: "Could not update live location." });
@@ -598,6 +611,12 @@ router.put("/location", deliveryAuth, async (req, res) => {
 router.put("/:id/delivered", deliveryAuth, async (req, res) => {
 
     try {
+        if (!isValidObjectId(req.params.id)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid order ID format"
+            });
+        }
 
         const otp = String(req.body?.otp || '').trim();
         if (!/^\d{6}$/.test(otp)) {

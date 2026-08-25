@@ -5,6 +5,7 @@ const Customer = require('../models/Customer');
 const jwt = require('jsonwebtoken');
 const { customerAuth } = require('./customerAuth');
 const { isAdminRole, resolveBranchId, resolvePublicBranchId, addBranchScope } = require('../utils/branchScope');
+const { isValidObjectId } = require('../utils/validation');
 
 // Middleware: verify admin JWT
 function adminAuth(req, res, next) {
@@ -70,12 +71,19 @@ router.get('/stats/summary', adminAuth, async (req, res) => {
   try {
     const query = {};
     await addBranchScope(query, resolveBranchId(req.admin, req.query));
-    const all = await Complaint.find(query);
+    const [counts, total] = await Promise.all([
+      Complaint.aggregate([
+        { $match: query },
+        { $group: { _id: '$status', count: { $sum: 1 } } }
+      ]),
+      Complaint.countDocuments(query)
+    ]);
+    const statusMap = Object.fromEntries(counts.map(c => [c._id, c.count]));
     res.json({
-      total: all.length,
-      new: all.filter(c => c.status === 'new').length,
-      inProgress: all.filter(c => c.status === 'in-progress').length,
-      resolved: all.filter(c => c.status === 'resolved').length
+      total,
+      new: statusMap['new'] || 0,
+      inProgress: statusMap['in-progress'] || 0,
+      resolved: statusMap['resolved'] || 0
     });
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch complaint stats' });
@@ -98,6 +106,9 @@ router.get('/', adminAuth, async (req, res) => {
 // PUT /api/complaints/:id/status — update status / add admin note (admin only)
 router.put('/:id/status', adminAuth, async (req, res) => {
   try {
+    if (!isValidObjectId(req.params.id)) {
+      return res.status(400).json({ error: 'Invalid complaint ID format' });
+    }
     const { status, adminNote } = req.body;
     const valid = ['new', 'in-progress', 'resolved'];
     if (!valid.includes(status)) return res.status(400).json({ error: 'Invalid status' });
@@ -118,6 +129,9 @@ router.put('/:id/status', adminAuth, async (req, res) => {
 // DELETE /api/complaints/:id — remove a complaint (admin only)
 router.delete('/:id', adminAuth, async (req, res) => {
   try {
+    if (!isValidObjectId(req.params.id)) {
+      return res.status(400).json({ error: 'Invalid complaint ID format' });
+    }
     const query = { _id: req.params.id };
     await addBranchScope(query, resolveBranchId(req.admin, req.query));
     const complaint = await Complaint.findOneAndDelete(query);

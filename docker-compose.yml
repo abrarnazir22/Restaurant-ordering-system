@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ember-and-brew-app
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - MONGODB_URI=${MONGODB_URI:-mongodb://mongo:27017/restaurant}
+      - JWT_SECRET=${JWT_SECRET:-dev_jwt_secret_change_in_production}
+      - NODE_ENV=production
+    depends_on:
+      - mongo
+    networks:
+      - ember-network
+
+  mongo:
+    image: mongo:6.0
+    container_name: ember-and-brew-db
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - ember-network
+
+volumes:
+  mongo-data:
+
+networks:
+  ember-network:
+    driver: bridge

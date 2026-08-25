@@ -222,6 +222,10 @@ function updateTopNav() {
   const shell = document.getElementById('portal-shell');
   const welcome = document.getElementById('nav-welcome');
   const logoutButton = document.getElementById('nav-logout-button');
+  const navMenuLink = document.getElementById('nav-menu-link');
+  if (navMenuLink) {
+    navMenuLink.href = withBranch('/');
+  }
   if (!welcome || !logoutButton) return;
   if (customerState.customer) {
     if (nav) nav.classList.remove('hidden');
@@ -365,11 +369,6 @@ function switchAuthMode(mode) {
     const phoneInput = document.querySelector('#register-form input[name="phone"]');
     if (phoneInput) sanitizePhoneInput(phoneInput);
   }
-  // Ensure fields aren't autofilled and are empty after rendering
-  setTimeout(() => {
-    const inputs = authForms.querySelectorAll('input');
-    inputs.forEach(i => { i.value = ''; i.autocomplete = 'off'; });
-  }, 40);
 }
 
 function showFieldError(fieldId, message) {
@@ -410,7 +409,7 @@ async function handleLogin(event) {
       window.location.href = withBranch('/index.html');
       return;
     }
-    renderPortal();
+    await renderPortal();
     showToast(`Welcome back, ${data.customer.name.split(' ')[0]}!`, 'success');
   } catch (err) {
     showFieldError('error-login', err.message);
@@ -451,7 +450,7 @@ async function handleRegister(event) {
       window.location.href = withBranch('/index.html');
       return;
     }
-    renderPortal();
+    await renderPortal();
     showToast(`Welcome, ${data.customer.name.split(' ')[0]}!`, 'success');
   } catch (err) {
     showFieldError('error-register', err.message);
@@ -703,12 +702,17 @@ function bindDashboardEvents() {
   }
 
   document.querySelectorAll('#mobile-nav [data-view]').forEach(button => {
-    button.addEventListener('click', event => {
-      customerState.dashboardView = event.currentTarget.dataset.view;
+    button.addEventListener('click', async event => {
+      const view = event.currentTarget.dataset.view;
+      if (view === 'menu') {
+        window.location.href = withBranch('/');
+        return;
+      }
+      customerState.dashboardView = view;
       if (customerState.dashboardView !== 'tracking') {
         customerState.selectedOrderNumber = null;
       }
-      renderPortal();
+      await renderPortal();
       closeMobileNav();
     });
   });
@@ -723,7 +727,12 @@ function bindDashboardEvents() {
 
   document.querySelectorAll('.customer-sidebar [data-view]').forEach(button => {
     button.addEventListener('click', async event => {
-      customerState.dashboardView = event.currentTarget.dataset.view;
+      const view = event.currentTarget.dataset.view;
+      if (view === 'menu') {
+        window.location.href = withBranch('/');
+        return;
+      }
+      customerState.dashboardView = view;
       if (customerState.dashboardView !== 'tracking') {
         customerState.selectedOrderNumber = null;
       }

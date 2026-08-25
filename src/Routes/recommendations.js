@@ -82,10 +82,19 @@ router.get('/:itemId', optionalCustomerAuth, async (req, res) => {
 
     const personalIds = req.customer ? await personalPairIds(req.customer.id, itemId) : [];
 
-    const globalPairs = item.pairCounts || new Map();
-    const globalSorted = Object.entries(globalPairs.toObject ? globalPairs.toObject() : globalPairs)
-      .sort((a, b) => b[1] - a[1])
-      .map(([id]) => id);
+    let pairEntries = [];
+    if (item.pairCounts) {
+      if (typeof item.pairCounts.entries === 'function') {
+        pairEntries = Array.from(item.pairCounts.entries());
+      } else if (typeof item.pairCounts.toObject === 'function') {
+        pairEntries = Object.entries(item.pairCounts.toObject());
+      } else if (typeof item.pairCounts === 'object') {
+        pairEntries = Object.entries(item.pairCounts);
+      }
+    }
+    const globalSorted = pairEntries
+      .sort((a, b) => (Number(b[1]) || 0) - (Number(a[1]) || 0))
+      .map(([id]) => String(id));
 
     const mergedIds = [];
     for (const id of personalIds) {

@@ -11,7 +11,7 @@ const customerSchema = new mongoose.Schema({
     type: String,
     required: true,
     trim: true,
-    match: [/^\+?[1-9]\d{6,14}$/, 'Enter a valid international phone number.']
+    match: [/^(\+?[1-9]\d{6,14}|0\d{9,11})$/, 'Enter a valid phone number.']
   },
   password: { type: String, required: true }
 }, { timestamps: true });

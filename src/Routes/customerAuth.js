@@ -3,6 +3,7 @@ const router = express.Router();
 const jwt = require('jsonwebtoken');
 const Customer = require('../models/Customer');
 const Order = require('../models/Order');
+const Reservation = require('../models/Reservation');
 
 // Middleware: verify a customer JWT (exported for use in orders/complaints routes)
 function customerAuth(req, res, next) {
@@ -97,6 +98,26 @@ async function claimGuestOrders(customer) {
   }
 }
 
+// Link any reservations made as a guest with this customer's email or phone
+async function claimGuestReservations(customer) {
+  if (!customer) return;
+  try {
+    const conditions = [];
+    if (customer.email) conditions.push({ email: customer.email.toLowerCase() });
+    if (customer.phone) conditions.push({ phone: customer.phone });
+    if (!conditions.length) return;
+
+    await Reservation.updateMany(
+      { customerId: null, $or: conditions },
+      { $set: { customerId: customer._id } }
+    );
+  } catch (err) {
+    console.error('Failed to link guest reservations to account:', err);
+  }
+}
+
+const { isValidPhone } = require('../utils/validation');
+
 // POST /api/customer-auth/register
 router.post('/register', async (req, res) => {
   try {
@@ -114,9 +135,9 @@ router.post('/register', async (req, res) => {
       });
     }
 
-    if (!/^\+?[1-9]\d{6,14}$/.test(phone)) {
+    if (!isValidPhone(phone)) {
       return res.status(400).json({
-        error: 'Enter a valid international phone number.'
+        error: 'Enter a valid phone number.'
       });
     }
 
@@ -141,6 +162,7 @@ router.post('/register', async (req, res) => {
 
     await customer.save();
     await claimGuestOrders(customer);
+    await claimGuestReservations(customer);
 
     const token = signCustomerToken(customer);
 
@@ -195,6 +217,7 @@ router.post('/login', async (req, res) => {
     }
 
     await claimGuestOrders(customer);
+    await claimGuestReservations(customer);
 
     const token = signCustomerToken(customer);
 

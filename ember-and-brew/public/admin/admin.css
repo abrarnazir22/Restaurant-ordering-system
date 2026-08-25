@@ -11,11 +11,11 @@
 :root{
   --ink:#1A1917;
   --ink-2:#242220;
-  --ink-3:#3D3830;
+  --ink-3:#1A1917;
   --paper:#F5F0E8;
   --paper-2:#FFFFFF;
   --gold:#C4923A;
-  --gold-deep:#A87832;
+  --gold-deep:#8A5F2A;
   --gold-pale:#F1DFB8;
   --ember:#9A5638;
   --ember-light:#C67D5A;
@@ -23,7 +23,7 @@
   --sage-light:#E3E9DD;
   --border:#E3D9C6;
   --text:#242220;
-  --text-muted:#8A8478;
+  --text-muted:#544F46;
   --danger:#9A5638;
   --radius:14px;
   --shadow: 0 4px 20px rgba(26,25,23,0.06);

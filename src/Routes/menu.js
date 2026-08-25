@@ -5,6 +5,7 @@ const Branch = require('../models/Branch');
 const jwt = require('jsonwebtoken');
 const { isAdminRole, resolveBranchId, BRANCH_ID_RE } = require('../utils/branchScope');
 const { upload, bufferToDataUri } = require('../middleware/upload');
+const { escapeRegex, isValidObjectId } = require('../utils/validation');
 
 // Middleware: verify admin JWT
 function adminAuth(req, res, next) {
@@ -107,6 +108,9 @@ router.post('/', adminAuth, upload.single('image'), async (req, res) => {
 // PUT /api/menu/:id — update a menu item (admin only, own branch)
 router.put('/:id', adminAuth, upload.single('image'), async (req, res) => {
   try {
+    if (!isValidObjectId(req.params.id)) {
+      return res.status(400).json({ error: 'Invalid item ID format' });
+    }
     const { name, description, price, category, available } = req.body;
     let image = req.body.image;
 
@@ -139,6 +143,9 @@ router.put('/:id', adminAuth, upload.single('image'), async (req, res) => {
 // DELETE /api/menu/:id — remove a menu item (admin only, own branch)
 router.delete('/:id', adminAuth, async (req, res) => {
   try {
+    if (!isValidObjectId(req.params.id)) {
+      return res.status(400).json({ error: 'Invalid item ID format' });
+    }
     const branchIdFilter = resolveBranchId(req.admin, req.query);
     const query = { _id: req.params.id };
     await addLegacyDefaultMenuFilter(query, branchIdFilter);
@@ -161,11 +168,14 @@ router.get('/', async (req, res) => {
     await addLegacyDefaultMenuFilter(query, branchId);
 
     if (category && category !== 'All') query.category = category;
-    if (search) {
-      query.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { description: { $regex: search, $options: 'i' } }
-      ];
+    if (search && typeof search === 'string') {
+      const cleanSearch = escapeRegex(search.trim().slice(0, 100));
+      if (cleanSearch) {
+        query.$or = [
+          { name: { $regex: cleanSearch, $options: 'i' } },
+          { description: { $regex: cleanSearch, $options: 'i' } }
+        ];
+      }
     }
     // `lean()` skips Mongoose document hydration because this is a read-only
     // public response, reducing work for every menu request.

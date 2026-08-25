@@ -22,7 +22,8 @@ tailwind.config={theme:{extend:{colors:{brand:{50:'#FDF8EF',100:'#F5F0E8',200:'#
 </script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-:root{--accent:#D4A853;--accent2:#C67D5A;--bg:#0F0E0C;--surface:#1A1917;--surface-light:#242220;--text:#F5F0E8;--muted:#8A8478;--border:#2E2C28}
+:root{--accent:#D4A853;--accent2:#C67D5A;--bg:#0F0E0C;--surface:#1A1917;--surface-light:#242220;--text:#F5F0E8;--muted:#B8B0A2;--border:#2E2C28}
+.text-brand-800{color:#C2B8A8 !important}
 html{scroll-behavior:smooth;overflow-x:hidden}
 body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text)}
 body::after{content:'';position:fixed;inset:0;background:repeating-conic-gradient(var(--text) 0.00005%,transparent 0.0005%) 50% 50%/2500px 2500px,linear-gradient(rgba(212,168,83,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(212,168,83,0.04) 1px,transparent 1px);background-size:2500px 2500px,60px 60px,60px 60px;opacity:.018;pointer-events:none;z-index:9999}
@@ -525,8 +526,8 @@ body::after{content:'';position:fixed;inset:0;background:repeating-conic-gradien
               <input type="tel" id="resv-phone" placeholder="03001234567 or +923001234567" class="form-input" required inputmode="tel" minlength="11" maxlength="13" pattern="^(0\d{10}|\+?92\d{10})$" title="Enter a valid Pakistani phone number, e.g. 03001234567 or +923001234567">
             </div>
             <div>
-              <label class="block text-[11px] uppercase tracking-wider text-brand-800 mb-2"><i class="fa-solid fa-calendar mr-1"></i> Date</label>
-              <input type="date" id="resv-date" class="form-input" required>
+              <label for="resv-date" class="block text-[11px] uppercase tracking-wider text-brand-800 mb-2"><i class="fa-solid fa-calendar mr-1"></i> Date</label>
+              <input type="date" id="resv-date" aria-label="Reservation Date" class="form-input" required>
             </div>
           </div>
 
@@ -904,7 +905,7 @@ body::after{content:'';position:fixed;inset:0;background:repeating-conic-gradien
 </div>
 
 <!-- Dish detail / customization popup -->
-<div id="dish3d-modal" role="dialog" aria-modal="true" aria-labelledby="dish3d-title" aria-hidden="true">
+<div id="dish3d-modal" role="dialog" aria-modal="true" aria-labelledby="dish3d-title" aria-hidden="true" style="display: none">
   <div class="dish3d-backdrop" onclick="closeDishItem()"></div>
   <section class="dish3d-dialog">
     <button type="button" class="dish3d-close" onclick="closeDishItem()" aria-label="Close">&times;</button>
@@ -954,7 +955,7 @@ body::after{content:'';position:fixed;inset:0;background:repeating-conic-gradien
     <form id="complaint-form" onsubmit="submitComplaint(event)" class="flex flex-col gap-3">
       <p id="complaint-account-note" class="text-brand-800 text-xs -mt-1"></p>
       <input class="form-input" type="text" name="orderNumber" placeholder="Order number, e.g. EB-1041 (optional)">
-      <select class="form-input" name="subject">
+      <select class="form-input" name="subject" aria-label="Complaint Subject">
         <option value="Food Quality">Food Quality</option>
         <option value="Order Accuracy">Order Accuracy</option>
         <option value="Service">Service</option>
@@ -1703,6 +1704,7 @@ function openDishItem(itemId) {
   document.getElementById('dish3d-add').onclick = () => confirmDishItemAddToCart();
   updateDishDetailTotal();
 
+  modal.style.display = 'flex';
   modal.classList.add('open');
   modal.setAttribute('aria-hidden', 'false');
   document.body.style.overflow = 'hidden';
@@ -1753,6 +1755,7 @@ function closeDishItem() {
   if (!modal || !modal.classList.contains('open')) return;
   modal.classList.remove('open');
   modal.setAttribute('aria-hidden', 'true');
+  modal.style.display = 'none';
   document.body.style.overflow = '';
   dish3dLastFocus?.focus?.();
 }

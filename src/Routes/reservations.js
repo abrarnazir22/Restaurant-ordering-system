@@ -4,6 +4,7 @@ const Reservation = require('../models/Reservation');
 const Customer = require('../models/Customer');
 const { customerAuth } = require('./customerAuth');
 const { isAdminRole, resolveBranchId, resolvePublicBranchId, addBranchScope } = require('../utils/branchScope');
+const { validateFutureDateTime, isValidObjectId } = require('../utils/validation');
 
 const router = express.Router();
 
@@ -62,8 +63,11 @@ router.post('/', async (req, res) => {
     if (!guestName?.trim() || !email?.trim() || !/^\d{11}$/.test(cleanPhone) || !date || !time || !Number.isInteger(partySize) || partySize < 1 || partySize > 20) {
       return res.status(400).json({ error: 'Please provide valid reservation details.' });
     }
-    if (new Date(`${date}T00:00:00`).getTime() < new Date().setHours(0, 0, 0, 0)) {
-      return res.status(400).json({ error: 'Please choose a future reservation date.' });
+
+    // Strict validation: reservation date and time must be in the future (at least 5 min in advance)
+    const futureCheck = validateFutureDateTime(date, time, 5);
+    if (!futureCheck.valid) {
+      return res.status(400).json({ error: futureCheck.error || 'Please choose a future reservation date and time.' });
     }
 
     let customerId = null;
@@ -82,8 +86,8 @@ router.post('/', async (req, res) => {
     const branchId = await resolvePublicBranchId(req.query);
     const reservation = await Reservation.create({
       branchId,
-      guestName,
-      email,
+      guestName: guestName.trim(),
+      email: email.trim().toLowerCase(),
       phone: cleanPhone,
       date,
       time,
@@ -145,6 +149,9 @@ router.get('/', adminAuth, async (req, res) => {
 // Admin confirmation, table assignment, or status update.
 router.put('/:id', adminAuth, async (req, res) => {
   try {
+    if (!isValidObjectId(req.params.id)) {
+      return res.status(400).json({ error: 'Invalid reservation ID format' });
+    }
     const { status, tableNumber } = req.body;
     const validStatuses = ['pending', 'confirmed', 'completed', 'cancelled'];
     if (!validStatuses.includes(status)) return res.status(400).json({ error: 'Invalid reservation status.' });

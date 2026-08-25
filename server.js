@@ -19,12 +19,57 @@ const cors = require("cors");
 const path = require("path");
 const http = require("http");
 const { Server } = require("socket.io");
+const helmet = require("helmet");
+const rateLimit = require("express-rate-limit");
+const swaggerUi = require("swagger-ui-express");
+const YAML = require("yamljs");
+const { requestTracingMiddleware, healthCheckHandler, logger } = require("./src/middleware/observability");
 
 const app = express();
 
 const AdminUser = require("./src/models/AdminUser");
 const RestaurantTable = require("./src/models/RestaurantTable");
 const Branch = require("./src/models/Branch");
+
+// ===================== SECURITY & OBSERVABILITY =====================
+
+app.use(helmet({
+    contentSecurityPolicy: false,
+    crossOriginEmbedderPolicy: false
+}));
+
+const apiLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: parseInt(process.env.RATE_LIMIT_MAX, 10) || 1500,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: "Too many requests, please try again later." }
+});
+
+const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: parseInt(process.env.AUTH_RATE_LIMIT_MAX, 10) || 100,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: "Too many authentication attempts, please try again later." }
+});
+
+app.use(requestTracingMiddleware);
+app.use("/api", apiLimiter);
+app.use("/api/auth/login", authLimiter);
+app.use("/api/customer-auth/login", authLimiter);
+app.use("/api/customer-auth/register", authLimiter);
+
+// Health check endpoint (does not require Mongo if cold start, reports live state)
+app.get("/api/health", healthCheckHandler);
+
+// API Documentation UI
+try {
+    const swaggerDocument = YAML.load(path.join(__dirname, "openapi.yaml"));
+    app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+} catch (e) {
+    console.warn("Could not load openapi.yaml for /api-docs:", e.message);
+}
 
 // ===================== DATABASE CONNECTION =====================
 
@@ -270,6 +315,20 @@ app.get("/", (req, res) => {
             "index.html"
         )
     );
+});
+
+// ===================== GLOBAL ERROR HANDLER =====================
+
+app.use((err, req, res, next) => {
+    logger.error("Unhandled error:", {
+        error: err.message,
+        stack: process.env.NODE_ENV === "development" ? err.stack : undefined,
+        requestId: req.id
+    });
+    res.status(err.status || 500).json({
+        error: err.message || "Internal server error",
+        requestId: req.id
+    });
 });
 
 // ===================== 404 =====================

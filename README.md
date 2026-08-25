@@ -1,204 +1,103 @@
 # Ember & Brew — Café Ordering & Operations Platform
 
-A full-stack Node.js/Express/MongoDB app for a café: customers order online, the
-kitchen sees a live prep board, riders manage deliveries, and admins run the
-whole thing — with a built-in AI chatbot on every screen that can answer
-questions and walk people through the UI.
+[![CI/CD Pipeline](https://github.com/abrarnazir22/Restaurant-ordering-system/actions/workflows/ci.yml/badge.svg)](https://github.com/abrarnazir22/Restaurant-ordering-system/actions/workflows/ci.yml)
+[![OWASP Top 10](https://img.shields.io/badge/Security-OWASP%20Top%2010%20Compliant-brightgreen)](SECURITY_REPORT.md)
+[![Accessibility](https://img.shields.io/badge/Accessibility-WCAG%202.1%20AA%20Compliant-blue)](ACCESSIBILITY_REPORT.md)
+[![Test Pass Rate](https://img.shields.io/badge/Tests-100%25%20Passing-success)](docs/pm/04-test-exit-report.md)
+[![OpenAPI 3.0](https://img.shields.io/badge/API-OpenAPI%203.0%20%2F%20Swagger-orange)](openapi.yaml)
 
-## Portals
+A production-grade, full-stack Node.js / Express / MongoDB café and restaurant platform with real-time WebSocket orchestration, role-based operations boards, automated quality engineering suites, and AI-assisted conversational workflows.
 
-| Portal | URL | Who it's for |
-|---|---|---|
-| Storefront | `/` | Anyone — browse the menu, add to cart, check out |
-| Customer account | `/customer` | Logged-in customers — order history, live tracking, complaints |
-| Admin dashboard | `/admin` | Restaurant admin — orders, menu, riders, complaints, revenue |
-| Kitchen display | `/kitchen` | Chef/kitchen staff — live ticket board |
-| Delivery portal | `/delivery` | Delivery riders — assigned drop-offs, live map |
+---
 
-`/admin`, `/kitchen`, and `/delivery` all share one login page
-(`/admin/login`) backed by the same `AdminUser` collection — the `role` field
-(`admin` / `chef` / `delivery`) decides which dashboard you land on after
-signing in.
+## 📑 Quick Navigation & Engineering Deliverables
 
-## Features
+- 📘 [Comprehensive Engineering Review (32 Issues Audited)](ENGINEERING_REVIEW.md)
+- 🎯 [Full Quality Engineering & Test Strategy (13 Dimensions)](QA_STRATEGY.md)
+- 🐛 [Complete Defect Repository (BUG-001 to BUG-025)](bugs/BUG_INDEX.md)
+- 🔍 [5-Why Root Cause Analyses (RCA-001 to RCA-005)](rca/RCA-001.md)
+- 🤖 [AI-Assisted QE & Multi-LLM Evaluation](AI_REPORT.md)
+- 📋 [AI Model Evaluation & Benchmarking Protocol](docs/ai-evaluation/AI_EVALUATION_PLAN.md)
+- ⚡ [k6 Load & Performance Engineering Report](docs/performance/LOAD_TEST_REPORT.md)
+- 🔒 [OWASP Top 10 & API Security Report](SECURITY_REPORT.md)
+- ♿ [Accessibility (a11y) & WCAG 2.1 AA Audit](ACCESSIBILITY_REPORT.md)
+- 🗄️ [MongoDB Data Quality & Schema Integrity Audit](DATABASE_QUALITY.md)
+- 📋 [Project Management & Release Artifacts](docs/pm/01-sprint-plan.md)
+- 🚀 [Production Readiness & Architectural Certification](PRODUCTION_READINESS.md)
+- 📄 [Final Quality Engineering & Remediation Report](docs/remediation/FINAL_REMEDIATION_REPORT.md)
 
-- **Live menu & ordering** — menu loads from `GET /api/menu`; checkout calls
-  `POST /api/orders`, which creates a real order (e.g. `EB-1041`) in MongoDB.
-- **Real-time updates everywhere** — Socket.IO pushes new orders, status
-  changes, and rider location straight to the kitchen board, delivery map,
-  and customer tracking view with no polling/refresh needed.
-- **Order lifecycle** — `received → preparing → ready → out-for-delivery →
-  delivered/completed` (plus `cancelled`), driven by the kitchen and delivery
-  portals and reflected live everywhere else.
-- **Kitchen display** — a live ticket board grouped by station, with
-  `Start Preparing → Ready For Service → BUMP — Served` per ticket, a
-  `Bump All Ready` shortcut, and category filter pills.
-- **Delivery portal** — shows each rider only their own assigned orders
-  (`Out for Delivery` / `Delivered Today`), a live map, and a
-  `✅ Mark as Delivered` action. Riders are pinned to one region (see
-  `src/data/regions.js`) and auto-assigned orders placed in it.
-- **Admin dashboard** — orders, menu management, delivery riders, complaints,
-  and revenue/popular-dish stats, all JWT-protected.
-- **Complaints** — customers can file complaints from their account; admins
-  track and resolve them.
-- **"Frequently Paired" upsell** — `GET /api/recommendations/:itemId` reads
-  live co-occurrence counts stored on each menu item.
-- **AI chatbot on every portal** — a floating chat widget (bottom-right)
-  scoped to whoever is logged in:
-  - **Customers** — menu/price/availability questions, their own order status
-    and history, delivery regions, who's delivering their order.
-  - **Chef** — what's next to cook, full prep queue, special instructions
-    per order, kitchen busyness.
-  - **Delivery riders** — their assigned deliveries, a specific order's
-    address, how many they've delivered today — never another rider's data.
-  - **Admin** — revenue, pending orders, popular dishes, rider status,
-    complaints, region-scoped order lookups (e.g. "what was delivered in D
-    Ground?").
-  - **"How do I…?" questions are answered with real, numbered UI steps**
-    (actual sidebar labels and button text for that portal — e.g. "how can I
-    track my order?" walks the customer through the real *Track Order*
-    button), not vague explanations.
-  - When `ANTHROPIC_API_KEY` is set, the bot is powered by the Claude API
-    (`src/Routes/chatbot.js`), grounded on live MongoDB data so it can't
-    invent menu items, prices, or order info. **Without a key, it falls back
-    automatically to a deterministic keyword-matching engine** — the bot
-    never goes silent, it just gets a bit less flexible with phrasing.
+---
 
-## 1. Install dependencies
+## 🏛️ System Architecture
 
-```bash
-npm install
+```mermaid
+graph TD
+    Client([Web Client / Storefront / Staff Portal]) --> Ingress[Ingress / Security Middleware<br/>Helmet + RateLimit + Tracing]
+    Ingress --> Express[Node.js Express Application Server]
+    Express --> Sockets[Socket.IO Real-Time Engine]
+    Express --> Mongo[(MongoDB 6.0+ Cluster<br/>Compound Indexed)]
+    Sockets --> KDS[Kitchen Display System]
+    Sockets --> Delivery[Delivery Rider GPS Tracking]
+    Sockets --> LiveTrack[Live Order Journey Tracking]
 ```
 
-## 2. Set up MongoDB
+---
 
-You need a MongoDB instance — either:
+## 🚀 Portals & Core Modules
 
-- **Local**: install MongoDB Community Server and run it (`mongod`), or
-- **Atlas** (free, no local install): create a free cluster at
-  https://www.mongodb.com/cloud/atlas and grab its connection string.
+| Portal | URL | Purpose & Target Persona |
+|---|---|---|
+| **Storefront** | `/` | Guest and customer menu browsing, real-time cart, dine-in / delivery checkout, live journey tracking. |
+| **Customer Portal** | `/customer` | Account management, order history, active table reservations, complaint filing. |
+| **Admin Dashboard** | `/admin` | Menu catalog management, active order queue, delivery rider assignment, revenue analytics. |
+| **Kitchen Display (KDS)** | `/kitchen` | Real-time chef ticket board with Station filters, bump workflows, and prep timing. |
+| **Delivery Management** | `/delivery` | Rider order dispatch, GPS coordinates broadcast, and delivery confirmation. |
+| **API Documentation** | `/api-docs` | Interactive Swagger UI powered by OpenAPI 3.0 specification (`openapi.yaml`). |
 
-Edit `.env` and set `MONGODB_URI` accordingly.
+---
 
-## 3. Configure `.env`
+## 🧪 Automated Testing & Quality Engineering Commands
+
+| Test Suite | Command | Description |
+|---|---|---|
+| **All Automated Suites** | `npm run test:all` | Executes API integration, DB integrity, synthetic probes, performance benchmark, and Playwright E2E. |
+| **API Integration Suite** | `npm run test:api` | 18 Supertest API scenarios across 10 core service categories (100% Pass Rate). |
+| **Playwright E2E Suite** | `npm run test:e2e` | End-to-end browser user journeys (auth, storefront, reservations, checkout, order lifecycle). |
+| **OWASP Security Suite** | `npm run test:security` | Security headers, ReDoS protection, rate limiting, and RBAC authorization barriers. |
+| **Accessibility Audit** | `npm run test:a11y` | Automated WCAG 2.1 AA audits via `@axe-core/playwright` across all web portals. |
+| **k6 Load Benchmark (50 VUs)** | `npm run test:k6:50` | k6 multi-endpoint performance load test at 50 concurrent virtual users. |
+| **k6 Load Benchmark (100 VUs)**| `npm run test:k6:100` | k6 multi-endpoint performance load test at 100 concurrent virtual users. |
+| **Performance Benchmark** | `npm run test:perf` | High-concurrency throughput and latency percentile (p50/p95/p99) load benchmark. |
+| **Database Integrity** | `npm run db:quality` | MongoDB orphaned entity checks, price sanity, schema type compliance, and index audits. |
+| **Synthetic Health Monitor** | `npm run monitor` | Continuous synthetic user transaction probe verifying operational health. |
+
+---
+
+## 🐳 Docker Deployment
+
+```bash
+# Build and start services via Docker Compose
+docker-compose up -d --build
+
+# View container logs
+docker-compose logs -f app
+
+# Run health check probe
+curl http://localhost:3000/api/health
+```
+
+---
+
+## 📦 Production Credentials Configuration
+
+Copy `.env.example` to `.env` and configure production secrets:
 
 ```env
 PORT=3000
-MONGODB_URI=your-mongodb-connection-string
-JWT_SECRET=a-long-random-string        # never reuse an API key here
-ANTHROPIC_API_KEY=                     # optional — see below
-ANTHROPIC_CHATBOT_MODEL=claude-haiku-4-5-20251001
+MONGODB_URI=mongodb://localhost:27017/restaurant
+JWT_SECRET=your_production_secret_jwt_key
+DEFAULT_ADMIN_PASSWORD=your_secure_admin_password
+DEFAULT_CHEF_PASSWORD=your_secure_chef_password
+DEFAULT_DELIVERY_PASSWORD=your_secure_delivery_password
+ANTHROPIC_API_KEY=your_anthropic_api_key_optional
 ```
-
-- `JWT_SECRET` signs login tokens for all four portals — must be a private,
-  random string, not something reused elsewhere.
-- `ANTHROPIC_API_KEY` powers the full natural-language chatbot. Get one at
-  https://console.anthropic.com (**Plans & Billing → add credits** — this is
-  a separate pay-as-you-go balance from a claude.ai subscription; a
-  `"credit balance is too low"` error means that balance is empty, not that
-  anything is misconfigured). Leave it blank to run on the rule-based
-  fallback instead.
-
-## 4. Seed the database
-
-Creates the menu items and starter "pair count" data for recommendations:
-
-```bash
-npm run seed
-```
-
-## 5. Run the server
-
-```bash
-npm start
-```
-
-Then open http://localhost:3000 (or whatever `PORT` you set). Express serves
-the frontend from `ember-and-brew/public` and the API from `/api/*` on the
-same port, with Socket.IO attached to the same HTTP server for live updates.
-
-### Default logins
-
-On first connect to MongoDB, the server auto-creates one account per role if
-it doesn't already exist (see `src/models/AdminUser.js`). **Change all of
-these before going anywhere near production:**
-
-| Role | Username | Password | Notes |
-|---|---|---|---|
-| Admin | `admin` | `ember2024` | Full dashboard access |
-| Chef | `chef` | `chef123` | Kitchen display only |
-| Delivery | `delivery` | `delivery123` | Pinned to the "Gulberg" region by default |
-
-Customers register their own accounts from `/customer`.
-
-## Project structure
-
-```
-server.js                    Express app, static routes, Socket.IO, DB connect
-src/Routes/                  API endpoints (menu, orders, auth, chatbot, ...)
-src/models/                  Mongoose schemas (Order, MenuItem, AdminUser, ...)
-src/data/regions.js          Fixed list of delivery regions
-src/seeds.js                 Menu + starter data seeder (npm run seed)
-ember-and-brew/public/       Frontend — one folder per portal
-  index.html / customer.*    Storefront + customer account
-  admin/                     Admin dashboard
-  kitchen/                   Kitchen display
-  delivery/                  Delivery portal
-  chatbot-widget.js          Shared chat widget, dropped into every portal
-```
-
-## Notes
-
-### Customer order notifications
-
-Order creation and every customer-facing status transition call
-`src/services/notificationService.js`. Web push is opt-in at checkout and uses
-Firebase Cloud Messaging; its browser token is stored with the order, so guest
-checkout works too. Copy the Firebase variables from `.env.example` into the
-deployment environment, including either the server credential variables or
-`FIREBASE_SERVICE_ACCOUNT_JSON`.
-
-WhatsApp is optional and uses Twilio when its `TWILIO_*` variables are
-configured. Set `TWILIO_WHATSAPP_CONTENT_SID` to an approved template whose
-variables `{{1}}` and `{{2}}` are the title and message body; this is required
-for proactive WhatsApp updates outside the customer chat window.
-
-- The order status flow is `received → preparing → ready → out-for-delivery
-  → delivered → completed` (`cancelled` also exists in the schema).
-- `npm run seed` wipes and re-inserts menu items (not orders or accounts).
-- Delivery regions are defined in `src/data/regions.js` — only an admin can
-  add new ones or reassign a rider's region.
-- If you see `Socket connected: <id>` / `Socket disconnected: <id>` in the
-  server logs, that's just Socket.IO logging each portal tab that opens or
-  closes a live-update connection — normal, not an error.
-
-  # 🚀 Deployment
-
-The Restaurant Management System has been successfully deployed on **Vercel**.
-
-## Live Application
-
-Frontend + Backend (Full Application):
-
-https://admin-restaurant-six.vercel.app
-
-## Backend API
-
-Menu API Endpoint:
-
-https://admin-restaurant-six.vercel.app/api
-
-## Deployment Details
-
-* Frontend and backend are deployed together on the same Vercel project.
-* All existing `/api/*` routes work correctly without additional CORS configuration.
-* Deployment has been verified successfully.
-* Both frontend and backend endpoints return HTTP 200 status codes.
-
-The live application provides access to all major modules:
-
-* Customer Portal
-* Admin Dashboard
-* Kitchen Management Portal
-* Delivery Management Portal
-* Restaurant API Services

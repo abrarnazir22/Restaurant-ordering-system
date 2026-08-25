@@ -1,0 +1,198 @@
+{
+  "info": {
+    "name": "Ember & Brew — Production API Test Suite",
+    "_postman_id": "eb-api-suite-2026",
+    "description": "Complete API test collection for Ember & Brew Café Operations Platform covering positive, negative, boundary, invalid, malformed, unauthorized, expired, duplicate, large payload, and RBAC tests.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Observability",
+      "item": [
+        {
+          "name": "GET /api/health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "health"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Response has healthy status', function () { var json = pm.response.json(); pm.expect(json.status).to.eql('healthy'); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Admin Login (Positive)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"ember2024\",\n  \"role\": \"admin\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "login"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
+                  "var data = pm.response.json(); pm.environment.set('adminToken', data.token);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Customer Register (Positive)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Postman Tester\",\n  \"phone\": \"03001234567\",\n  \"email\": \"pm.tester.{{$timestamp}}@example.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/customer-auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "customer-auth", "register"]
+            }
+          }
+        },
+        {
+          "name": "Customer Register - Short Password (Boundary Negative)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Short Pass\",\n  \"phone\": \"03001234567\",\n  \"email\": \"short.{{$timestamp}}@example.com\",\n  \"password\": \"123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/customer-auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "customer-auth", "register"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": ["pm.test('Status is 400 Bad Request', function () { pm.response.to.have.status(400); });"],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Menu & Ordering",
+      "item": [
+        {
+          "name": "GET /api/menu",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/menu",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "menu"]
+            }
+          }
+        },
+        {
+          "name": "GET /api/menu (ReDoS Injection Check)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/menu?search=(((((((a+)+)+)+)+)+)+)$",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "menu"],
+              "query": [{ "key": "search", "value": "(((((((a+)+)+)+)+)+)+)$" }]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": ["pm.test('Status is 200 without throwing regex exception', function () { pm.response.to.have.status(200); });"],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /api/orders (Guest Dine-In)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"items\": [{ \"menuItemId\": \"{{menuItemId}}\", \"qty\": 1 }],\n  \"orderType\": \"dine-in\",\n  \"tableNumber\": \"T-01\",\n  \"guestName\": \"Jane Dine\",\n  \"guestPhone\": \"03001234567\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/orders",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "orders"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reservations",
+      "item": [
+        {
+          "name": "POST /api/reservations (Past Date Rejection)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"guestName\": \"Past Guest\",\n  \"email\": \"past@example.com\",\n  \"phone\": \"03001234567\",\n  \"date\": \"2020-01-01\",\n  \"time\": \"12:00\",\n  \"guests\": 2\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/reservations",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reservations"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": ["pm.test('Status is 400 Bad Request on past date', function () { pm.response.to.have.status(400); });"],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

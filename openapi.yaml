@@ -1,0 +1,219 @@
+openapi: 3.0.3
+info:
+  title: Ember & Brew API
+  description: Production-grade Café Ordering & Operations Platform API
+  version: 1.0.0
+servers:
+  - url: http://localhost:3000
+    description: Local development server
+  - url: https://admin-restaurant-six.vercel.app
+    description: Production Vercel deployment
+paths:
+  /api/health:
+    get:
+      summary: Health check and telemetry metrics
+      tags:
+        - Observability
+      responses:
+        '200':
+          description: System and database are healthy
+        '503':
+          description: Database or system degraded
+  /api/menu:
+    get:
+      summary: List available menu items for a branch
+      tags:
+        - Menu
+      parameters:
+        - in: query
+          name: branchId
+          schema:
+            type: string
+        - in: query
+          name: category
+          schema:
+            type: string
+        - in: query
+          name: search
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of menu items
+    post:
+      summary: Create new menu item (Admin only)
+      tags:
+        - Menu
+      security:
+        - bearerAuth: []
+      responses:
+        '201':
+          description: Item created
+        '400':
+          description: Invalid input
+        '401':
+          description: Unauthorized
+  /api/orders:
+    post:
+      summary: Create an order (Guest or Customer)
+      tags:
+        - Orders
+      responses:
+        '201':
+          description: Order created
+        '400':
+          description: Validation error
+    get:
+      summary: List orders (Admin only)
+      tags:
+        - Orders
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Order list
+  /api/orders/mine/list:
+    get:
+      summary: Get authenticated customer orders
+      tags:
+        - Customer Orders
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Customer order history
+        '401':
+          description: Unauthorized
+  /api/reservations:
+    post:
+      summary: Create a table reservation request
+      tags:
+        - Reservations
+      responses:
+        '201':
+          description: Reservation created
+        '400':
+          description: Invalid or past date/time
+    get:
+      summary: List reservations (Admin only)
+      tags:
+        - Reservations
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Reservation list
+  /api/reservations/mine/list:
+    get:
+      summary: Get authenticated customer reservations
+      tags:
+        - Customer Reservations
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Customer reservation list
+  /api/customer-auth/register:
+    post:
+      summary: Register customer account
+      tags:
+        - Customer Auth
+      responses:
+        '201':
+          description: Account created and token returned
+        '409':
+          description: Email already registered
+  /api/customer-auth/login:
+    post:
+      summary: Customer login
+      tags:
+        - Customer Auth
+      responses:
+        '200':
+          description: Login successful
+        '401':
+          description: Invalid credentials
+  /api/auth/login:
+    post:
+      summary: Staff login (Admin, Chef, Delivery, Superadmin)
+      tags:
+        - Staff Auth
+      responses:
+        '200':
+          description: Login successful
+        '401':
+          description: Invalid credentials
+  /api/kitchen/orders:
+    get:
+      summary: Get active kitchen ticket queue (Chef only)
+      tags:
+        - Kitchen
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Active kitchen orders
+  /api/kitchen/{id}/accept:
+    put:
+      summary: Mark order preparing (Chef only)
+      tags:
+        - Kitchen
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Order accepted
+  /api/kitchen/{id}/prepared:
+    put:
+      summary: Mark order ready (Chef only)
+      tags:
+        - Kitchen
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Order marked ready
+  /api/delivery/orders:
+    get:
+      summary: Get assigned delivery orders (Rider only)
+      tags:
+        - Delivery
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Assigned delivery list
+  /api/delivery/{id}/delivered:
+    put:
+      summary: Verify customer OTP and complete delivery (Rider only)
+      tags:
+        - Delivery
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Delivery completed
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
