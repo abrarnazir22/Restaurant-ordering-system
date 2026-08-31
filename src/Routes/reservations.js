@@ -90,7 +90,7 @@ router.post('/', async (req, res) => {
       email: email.trim().toLowerCase(),
       phone: cleanPhone,
       date,
-      time,
+      time: futureCheck.normalizedTime || time,
       guests: partySize,
       notes: notes || '',
       customerId

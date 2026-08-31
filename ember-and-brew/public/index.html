@@ -549,16 +549,16 @@ body::after{content:'';position:fixed;inset:0;background:repeating-conic-gradien
           <div class="mt-7">
             <label class="block text-[11px] uppercase tracking-wider text-brand-800 mb-3"><i class="fa-solid fa-clock mr-1"></i> Time</label>
             <div id="resv-time-row" class="flex flex-wrap gap-2">
-              <button type="button" class="resv-pill-time" data-val="5:00 PM">5:00 PM</button>
-              <button type="button" class="resv-pill-time" data-val="5:30 PM">5:30 PM</button>
-              <button type="button" class="resv-pill-time" data-val="6:00 PM">6:00 PM</button>
-              <button type="button" class="resv-pill-time" data-val="6:30 PM">6:30 PM</button>
-              <button type="button" class="resv-pill-time active" data-val="7:00 PM">7:00 PM</button>
-              <button type="button" class="resv-pill-time" data-val="7:30 PM">7:30 PM</button>
-              <button type="button" class="resv-pill-time" data-val="8:00 PM">8:00 PM</button>
-              <button type="button" class="resv-pill-time" data-val="8:30 PM">8:30 PM</button>
-              <button type="button" class="resv-pill-time" data-val="9:00 PM">9:00 PM</button>
-              <button type="button" class="resv-pill-time" data-val="9:30 PM">9:30 PM</button>
+              <button type="button" class="resv-pill-time" data-val="17:00">5:00 PM</button>
+              <button type="button" class="resv-pill-time" data-val="17:30">5:30 PM</button>
+              <button type="button" class="resv-pill-time" data-val="18:00">6:00 PM</button>
+              <button type="button" class="resv-pill-time" data-val="18:30">6:30 PM</button>
+              <button type="button" class="resv-pill-time active" data-val="19:00">7:00 PM</button>
+              <button type="button" class="resv-pill-time" data-val="19:30">7:30 PM</button>
+              <button type="button" class="resv-pill-time" data-val="20:00">8:00 PM</button>
+              <button type="button" class="resv-pill-time" data-val="20:30">8:30 PM</button>
+              <button type="button" class="resv-pill-time" data-val="21:00">9:00 PM</button>
+              <button type="button" class="resv-pill-time" data-val="21:30">9:30 PM</button>
             </div>
           </div>
 
@@ -3150,7 +3150,8 @@ document.addEventListener('change', e => {
 // RESERVATIONS
 // ============================================
 let resvSelectedSize = 2;
-let resvSelectedTime = '7:00 PM';
+let resvSelectedTime = '19:00';
+let resvSelectedTimeLabel = '7:00 PM';
 
 function scrollToReservation() {
   const needsNav = state.currentView !== 'menu';
@@ -3174,6 +3175,7 @@ document.addEventListener('click', (e) => {
     document.querySelectorAll('.resv-pill-time').forEach(b => b.classList.remove('active'));
     timeBtn.classList.add('active');
     resvSelectedTime = timeBtn.dataset.val;
+    resvSelectedTimeLabel = timeBtn.textContent.trim();
   }
 });
 
@@ -3205,7 +3207,7 @@ async function handleReservationSubmit(e) {
     document.getElementById('reserveForm').classList.add('hidden');
     document.getElementById('resv-success').classList.remove('hidden');
     document.getElementById('resv-success-msg').innerHTML =
-      `Thank you, <strong class="text-brand-100">${name}</strong>. We've reserved a table for ${resvSelectedSize} on <strong class="text-brand-100">${date}</strong> at <strong class="text-brand-100">${resvSelectedTime}</strong>. A confirmation is on its way to <strong class="text-brand-100">${email}</strong>.`;
+      `Thank you, <strong class="text-brand-100">${name}</strong>. We've reserved a table for ${resvSelectedSize} on <strong class="text-brand-100">${date}</strong> at <strong class="text-brand-100">${resvSelectedTimeLabel || resvSelectedTime}</strong>. A confirmation is on its way to <strong class="text-brand-100">${email}</strong>.`;
     showToast('Table request received!', 'success');
   } catch (err) {
     showToast(err.message || 'Could not submit your reservation.', 'error');
