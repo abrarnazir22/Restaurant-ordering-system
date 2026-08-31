@@ -3,7 +3,11 @@ const dns = require("dns");
 
 // Use reliable public DNS servers so mongodb+srv:// works
 // on networks whose default DNS blocks/refuses SRV queries.
-dns.setServers(["8.8.8.8", "1.1.1.1"]);
+try {
+    dns.setServers(["8.8.8.8", "1.1.1.1"]);
+} catch (e) {
+    console.warn("Custom DNS servers could not be set:", e.message);
+}
 
 // ===================== ENVIRONMENT =====================
 require("dotenv").config();
@@ -73,6 +77,11 @@ try {
 
 // ===================== DATABASE CONNECTION =====================
 
+const MONGO_OPTIONS = {
+    serverSelectionTimeoutMS: 5000,
+    maxPoolSize: 10
+};
+
 // Reuse the connection while a Vercel serverless instance is warm.
 let databaseConnection;
 
@@ -83,7 +92,7 @@ function connectDatabase() {
 
     if (!databaseConnection) {
         databaseConnection = mongoose
-            .connect(process.env.MONGODB_URI)
+            .connect(process.env.MONGODB_URI, MONGO_OPTIONS)
             .catch((err) => {
                 databaseConnection = null;
                 throw err;
@@ -344,7 +353,7 @@ app.get("*", (req, res) => {
 
 if (require.main === module) {
     mongoose
-        .connect(process.env.MONGODB_URI)
+        .connect(process.env.MONGODB_URI, MONGO_OPTIONS)
         .then(async () => {
             console.log("✅ Connected to MongoDB");
 

@@ -2,7 +2,10 @@
   "version": 2,
   "functions": {
     "api/index.js": {
-      "includeFiles": "ember-and-brew/public/**"
+      "includeFiles": [
+        "ember-and-brew/public/**",
+        "openapi.yaml"
+      ]
     }
   },
   "rewrites": [
